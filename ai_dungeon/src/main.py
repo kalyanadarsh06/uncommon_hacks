@@ -1,89 +1,173 @@
 import pyxel
-import random
-import math
-import json
-import os
-from enum import Enum
-from puzzle_generator import PuzzleGenerator
-from level_manager import LevelManager, GameState
-from ui_manager import UIManager
+from maze_generator import MazeGenerator
+from game_state import Game, GameState
 
-class WeaponType(Enum):
-    SWORD = 1
-    BOW = 2
-    STAFF = 3
-
-class Projectile:
-    def __init__(self, x, y, dx, dy, damage, weapon_type, size=8):
-        self.x = x
-        self.y = y
-        self.dx = dx
-        self.dy = dy
-        self.damage = damage
-        self.weapon_type = weapon_type
-        self.size = size
-        self.active = True
-
+class MazeGame:
+    def __init__(self):
+        # Initialize game window
+        self.CELL_SIZE = 20
+        self.GRID_SIZE = 10
+        window_size = self.CELL_SIZE * self.GRID_SIZE
+        pyxel.init(window_size, window_size, title="AI Maze Escape")
+        
+        # Colors
+        self.COLORS = {
+            'wall': 5,      # Dark blue
+            'player': 11,   # Yellow
+            'coin': 10,     # Yellow
+            'exit': 3,      # Green
+            'lava': 8,      # Red
+            'path': 1,      # Dark blue
+            'bg': 0        # Black
+        }
+        
+        # Initialize game components
+        self.maze_generator = MazeGenerator()
+        self.game = Game()
+        
+        # Start first level
+        self.init_level()
+        self.game.state = GameState.PLAYING
+        
+        # Start the game loop
+        pyxel.run(self.update, self.draw)
+    
+    def init_level(self):
+        """Initialize a new level."""
+        maze_data = self.maze_generator.generate_maze(self.game.current_level)
+        self.game.init_level(maze_data)
+    
     def update(self):
-        self.x += self.dx
-        self.y += self.dy
-        # Deactivate if out of bounds
-        if (self.x < 0 or self.x > pyxel.width or
-            self.y < 0 or self.y > pyxel.height):
-            self.active = False
-
+        """Update game state."""
+        if self.game.state == GameState.PLAYING:
+            # Handle input
+            if not self.game.player.moving:
+                if pyxel.btnp(pyxel.KEY_UP):
+                    self.game.start_movement(0, -1)
+                elif pyxel.btnp(pyxel.KEY_DOWN):
+                    self.game.start_movement(0, 1)
+                elif pyxel.btnp(pyxel.KEY_LEFT):
+                    self.game.start_movement(-1, 0)
+                elif pyxel.btnp(pyxel.KEY_RIGHT):
+                    self.game.start_movement(1, 0)
+            
+            # Update player movement
+            self.game.update_player_movement()
+            
+            # Lava update disabled
+            pass
+            
+            # Check win/lose conditions
+            self.game.check_game_over()
+            self.game.check_level_complete()
+            
+        elif self.game.state == GameState.LEVEL_COMPLETE:
+            if pyxel.btnp(pyxel.KEY_RETURN):
+                self.init_level()
+                self.game.state = GameState.PLAYING
+                
+        elif self.game.state == GameState.GAME_OVER:
+            if pyxel.btnp(pyxel.KEY_R):
+                self.reset_game()
+                
+        elif self.game.state == GameState.GAME_COMPLETE:
+            if pyxel.btnp(pyxel.KEY_R):
+                self.reset_game()
+    
     def draw(self):
-        # Draw projectile based on weapon type
-        Game.create_weapon_effect(Game, self.x, self.y, self.weapon_type)
+        """Draw the game."""
+        pyxel.cls(self.COLORS['bg'])
+        
+        # Draw grid and visited cells
+        for y in range(self.GRID_SIZE):
+            for x in range(self.GRID_SIZE):
+                if self.game.grid[y][x]:
+                    self.draw_cell(x, y, self.COLORS['path'])
+        
+        # Draw walls
+        for wall in self.game.walls:
+            self.draw_cell(wall[0], wall[1], self.COLORS['wall'])
+        
+        # Draw coins
+        for coin in self.game.coins:
+            self.draw_coin(coin[0], coin[1])
+        
+        # Draw exit
+        self.draw_cell(self.game.exit_pos[0], self.game.exit_pos[1], self.COLORS['exit'])
+        
+        # Draw player
+        self.draw_player(self.game.player.x, self.game.player.y)
+        
+        # Lava drawing disabled
+        pass
+        
+        # Draw UI
+        self.draw_ui()
+    
+    def draw_cell(self, x, y, color):
+        """Draw a single cell."""
+        pyxel.rect(
+            x * self.CELL_SIZE,
+            y * self.CELL_SIZE,
+            self.CELL_SIZE - 1,
+            self.CELL_SIZE - 1,
+            color
+        )
+    
+    def draw_coin(self, x, y):
+        """Draw a coin."""
+        center_x = x * self.CELL_SIZE + self.CELL_SIZE // 2
+        center_y = y * self.CELL_SIZE + self.CELL_SIZE // 2
+        radius = self.CELL_SIZE // 4
+        pyxel.circ(center_x, center_y, radius, self.COLORS['coin'])
+    
+    def draw_player(self, x, y):
+        """Draw the player."""
+        center_x = x * self.CELL_SIZE + self.CELL_SIZE // 2
+        center_y = y * self.CELL_SIZE + self.CELL_SIZE // 2
+        radius = self.CELL_SIZE // 3
+        pyxel.circ(center_x, center_y, radius, self.COLORS['player'])
+    
+    def draw_lava(self):
+        """Lava drawing disabled."""
+        pass
+    
+    def draw_ui(self):
+        """Draw game UI."""
+        # Score and level
+        pyxel.text(4, 4, f"Level: {self.game.current_level}", 7)
+        pyxel.text(4, 12, f"Score: {self.game.player.score}", 7)
+        pyxel.text(4, 20, f"Coins: {self.game.player.collected_coins}", 7)
+        
+        # Game over screen
+        if self.game.state == GameState.GAME_OVER:
+            self.draw_centered_text("GAME OVER", pyxel.height // 2)
+            self.draw_centered_text("Press R to restart", pyxel.height // 2 + 10)
+        
+        # Level complete screen
+        elif self.game.state == GameState.LEVEL_COMPLETE:
+            self.draw_centered_text("LEVEL COMPLETE!", pyxel.height // 2)
+            self.draw_centered_text("Press ENTER for next level", pyxel.height // 2 + 10)
+        
+        # Game complete screen
+        elif self.game.state == GameState.GAME_COMPLETE:
+            self.draw_centered_text("CONGRATULATIONS!", pyxel.height // 2)
+            self.draw_centered_text("You've completed all levels!", pyxel.height // 2 + 10)
+            self.draw_centered_text("Press R to play again", pyxel.height // 2 + 20)
+    
+    def draw_centered_text(self, text, y):
+        """Draw centered text."""
+        x = (pyxel.width - len(text) * 4) // 2
+        pyxel.text(x, y, text, 7)
+        
+    def reset_game(self):
+        """Reset the game state without reinitializing Pyxel."""
+        self.game = Game()
+        self.init_level()
+        self.game.state = GameState.PLAYING
 
-class Enemy:
-    def __init__(self, x, y, speed=1):
-        self.x = x
-        self.y = y
-        self.speed = speed
-        self.size = 8
-        self.health = 100
-        self.move_timer = 0
-        self.direction = random.randint(0, 3)  # 0: up, 1: right, 2: down, 3: left
-        self.hit_flash = 0  # Timer for hit animation
-
-    def take_damage(self, amount):
-        self.health -= amount
-        self.hit_flash = 10  # Flash for 10 frames when hit
-
-    def update(self, player_x, player_y):
-        if self.hit_flash > 0:
-            self.hit_flash -= 1
-
-        # Change direction every 30 frames
-        self.move_timer += 1
-        if self.move_timer >= 30:
-            self.direction = random.randint(0, 3)
-            self.move_timer = 0
-
-        # Move based on current direction
-        if self.direction == 0:  # up
-            self.y = max(0, self.y - self.speed)
-        elif self.direction == 1:  # right
-            self.x = min(pyxel.width - self.size, self.x + self.speed)
-        elif self.direction == 2:  # down
-            self.y = min(pyxel.height - self.size, self.y + self.speed)
-        else:  # left
-            self.x = max(0, self.x - self.speed)
-
-    def draw(self):
-        # Draw goblin with flash effect
-        if self.hit_flash > 0 and self.hit_flash % 2 == 0:
-            # Flash white
-            pyxel.rect(self.x, self.y, self.size, self.size, 7)
-        else:
-            # Draw normal goblin
-            Game.create_goblin(Game, self.x, self.y)
-        # Draw health bar
-        health_width = (self.size * self.health) // 100
-        pyxel.rect(self.x, self.y - 2, health_width, 1, 11)
-
-class Game:
+if __name__ == '__main__':
+    MazeGame()
     def create_explorer(self, x, y):
         # Brown hat (color 4)
         pyxel.rect(x+2, y, 4, 1, 4)
@@ -490,4 +574,4 @@ class Game:
         self.ui_manager.show_combat(self.player_health, self.level_manager.current_level)
 
 if __name__ == '__main__':
-    Game()
+    MazeGame()
