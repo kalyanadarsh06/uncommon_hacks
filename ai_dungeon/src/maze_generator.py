@@ -35,29 +35,26 @@ class MazeGenerator:
         }}
 
         SPECIFIC REQUIREMENTS FOR LEVEL {level}:
-        1. Create strategic wall placement:
-           - Place walls to prevent easy edge-walking
-           - Create bottlenecks and corridors
-           - Leave multiple possible paths but make them challenging
-        2. Include AT LEAST {min_walls} wall blocks to create a complex maze
-        3. The path from start to exit MUST:
-           - Be at least {path_length} steps long
-           - Require at least {min_turns} changes in direction
-           - Have multiple possible routes of varying difficulty
-        4. Add {level} strategic obstacles:
-           - Create challenging pathways
-           - Add optional exploration routes for coins
-           - Make shortcuts risky or costly
-        5. Place {level + 3} coins in positions that require exploration
-        6. The maze MUST be different from all previous levels
-        7. Make it feel like a level {level} challenge
+        1. GUARANTEED PATH REQUIREMENT:
+           - There MUST be a clear path from start [0,{size-1}] to exit [{size-1},0]
+           - Do NOT block this path with walls
+           - The path can be direct for level 1, more complex for higher levels
+
+        2. WALL PLACEMENT:
+           - Add {min_walls} wall blocks around the guaranteed path
+           - Walls should create some challenge but not block the path
+           - Higher levels can have more walls but must keep path clear
+
+        3. COIN PLACEMENT:
+           - Place {level + 3} coins along or near the guaranteed path
+           - Some coins can be in side paths for extra challenge
+           - Coins should be reachable without getting stuck
 
         CRITICAL RULES:
-        - All coordinates must be within 0 to {size-1}
-        - There MUST be at least one valid path from start to exit
-        - Start is fixed at [0,{size-1}] and exit at [{size-1},0]
-        - Balance challenge with solvability
-        - Create multiple paths but make them all require skill
+        - Start at [0,{size-1}] (bottom-left)
+        - Exit at [{size-1},0] (top-right)
+        - ENSURE the path from start to exit is clear
+        - Make it feel like level {level} but keep it solvable
         """
         
         # Add a unique seed to prevent duplicate mazes
@@ -109,20 +106,16 @@ class MazeGenerator:
             if start != [0, size-1] or exit_pos != [size-1, 0]:
                 return False
 
-            # Validate wall density near edges
-            edge_density = 0
-            total_edges = (size - 1) * 4  # Total possible edge cells excluding corners
+            # Verify that walls don't block the entire path
+            # We'll be more lenient with wall placement but ensure path exists
+            border_points = set((x, y) for x, y in walls)
             
-            # Count walls along edges
-            for x in range(1, size-1):
-                if (x, 0) in border_points: edge_density += 1  # Top edge
-                if (x, size-1) in border_points: edge_density += 1  # Bottom edge
-            for y in range(1, size-1):
-                if (0, y) in border_points: edge_density += 1  # Left edge
-                if (size-1, y) in border_points: edge_density += 1  # Right edge
-                
-            # Ensure some edge walls (30-70% coverage) but not complete blockage
-            if not (0.3 * total_edges <= edge_density <= 0.7 * total_edges):
+            # Check if there's a path from start to end
+            if not self._has_valid_path(start, exit_pos, walls, size):
+                return False
+            
+            # Ensure start and exit aren't blocked
+            if (start[0], start[1]) in border_points or (exit_pos[0], exit_pos[1]) in border_points:
                 return False
 
             # Check if path exists from start to exit
@@ -159,33 +152,36 @@ class MazeGenerator:
     def _generate_fallback_maze(self, level, size):
         """Generate a simple solvable maze as fallback."""
         walls = []
-        
-        # Create a zigzag pattern that prevents straight paths
-        for i in range(1, size-1):
-            if i % 2 == 0:
-                # Create partial walls that force turns
-                for j in range(0, size-2):
-                    walls.append([i, j])
-            else:
-                # Create gaps for passage but prevent straight paths
-                for j in range(2, size):
-                    walls.append([i, j])
-        
-        # Add some strategic edge walls
-        for i in range(2, size-2):
-            if i % 3 == 0:
-                walls.append([0, i])  # Left edge
-                walls.append([size-1, i])  # Right edge
-                walls.append([i, 0])  # Top edge
-                walls.append([i, size-1])  # Bottom edge
-        
-        # Add coins in challenging positions
         coins = []
-        for i in range(min(level+3, size-2)):
-            if i % 2 == 0:
-                coins.append([i+1, i+1])
-            else:
-                coins.append([i+1, size-2-i])
+        
+        # First, create a guaranteed path from start to exit
+        path_points = set()
+        x, y = 0, size-1  # Start position
+        
+        # Generate a simple path that goes up and right
+        while x < size-1 or y > 0:
+            path_points.add((x, y))
+            if x < size-1 and (level == 1 or random.random() > 0.5):
+                x += 1
+            elif y > 0:
+                y -= 1
+            path_points.add((x, y))
+        
+        # Add some walls around the path
+        for i in range(size):
+            for j in range(size):
+                if (i, j) not in path_points and random.random() < 0.3:
+                    # Don't block start or exit
+                    if not (i == 0 and j == size-1) and not (i == size-1 and j == 0):
+                        walls.append([i, j])
+        
+        # Add coins near the path
+        path_list = list(path_points)
+        for _ in range(min(level + 3, len(path_list))):
+            if path_list:
+                point = random.choice(path_list)
+                coins.append([point[0], point[1]])
+                path_list.remove(point)
         
         return {
             "walls": walls,
