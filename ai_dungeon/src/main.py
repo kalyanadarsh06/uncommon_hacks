@@ -266,9 +266,19 @@ class Game:
                 self.puzzle_input += value
         
         # Handle letters (A-Z)
-        for i in range(pyxel.KEY_A, pyxel.KEY_Z + 1):
-            if pyxel.btnp(i):
-                self.puzzle_input += chr(i + ord('a'))
+        letter_keys = {
+            pyxel.KEY_A: 'A', pyxel.KEY_B: 'B', pyxel.KEY_C: 'C', pyxel.KEY_D: 'D',
+            pyxel.KEY_E: 'E', pyxel.KEY_F: 'F', pyxel.KEY_G: 'G', pyxel.KEY_H: 'H',
+            pyxel.KEY_I: 'I', pyxel.KEY_J: 'J', pyxel.KEY_K: 'K', pyxel.KEY_L: 'L',
+            pyxel.KEY_M: 'M', pyxel.KEY_N: 'N', pyxel.KEY_O: 'O', pyxel.KEY_P: 'P',
+            pyxel.KEY_Q: 'Q', pyxel.KEY_R: 'R', pyxel.KEY_S: 'S', pyxel.KEY_T: 'T',
+            pyxel.KEY_U: 'U', pyxel.KEY_V: 'V', pyxel.KEY_W: 'W', pyxel.KEY_X: 'X',
+            pyxel.KEY_Y: 'Y', pyxel.KEY_Z: 'Z'
+        }
+        
+        for key, value in letter_keys.items():
+            if pyxel.btnp(key):
+                self.puzzle_input += value
         
         # Backspace
         if pyxel.btnp(pyxel.KEY_BACKSPACE):
@@ -325,7 +335,12 @@ class Game:
                 self.ui_manager.show_message("Congratulations! You've escaped the dungeon!", 120)
                 pyxel.quit()
             else:
+                # Reset puzzle state
                 self.current_puzzle = None
+                self.puzzle_input = ""
+                self.ui_manager.show_hints = False
+                self.ui_manager.current_hint = 0
+                # Show level transition message
                 self.ui_manager.show_message(f"Level {self.level_manager.current_level}", 60)
     
     def update_player_combat(self):
