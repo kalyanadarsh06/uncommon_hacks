@@ -1,0 +1,5 @@
+pyxel==2.0.5
+google-generativeai==0.3.2
+python-dotenv==1.0.0
+pygame==2.1.3  # For game development
+requests==2.31.0  # For downloading sprite assets
