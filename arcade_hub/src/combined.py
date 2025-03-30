@@ -20,17 +20,17 @@ font = pygame.font.SysFont('Arial', 72)
 small_font = pygame.font.SysFont('Arial', 24)
 
 # Load the image for the games (replace with your image path)
-image1 = pygame.image.load("ai_dungeon/src/game1art.png")  # Path to your image
+image1 = pygame.image.load("arcade_hub/src/game1art.png")  # Path to your image
 image1 = pygame.transform.scale(image1, (150, 100))  # Resize image to fit the rectangle size
-image2 = pygame.image.load("ai_dungeon/src/game2art.png")  # Path to your image
+image2 = pygame.image.load("arcade_hub/src/game2art.png")  # Path to your image
 image2 = pygame.transform.scale(image2, (150, 100))  # Resize image to fit the rectangle size
-image3 = pygame.image.load("ai_dungeon/src/game3art.png")  # Path to your image
+image3 = pygame.image.load("arcade_hub/src/game3art.png")  # Path to your image
 image3 = pygame.transform.scale(image3, (150, 100))  # Resize image to fit the rectangle size
-image4 = pygame.image.load("ai_dungeon/src/game4art.png")  # Path to your image
+image4 = pygame.image.load("arcade_hub/src/game4art.png")  # Path to your image
 image4 = pygame.transform.scale(image4, (150, 100))  # Resize image to fit the rectangle size
-image5 = pygame.image.load("ai_dungeon/src/game5art.png")  # Path to your image
+image5 = pygame.image.load("arcade_hub/src/game5art.png")  # Path to your image
 image5 = pygame.transform.scale(image5, (150, 100))  # Resize image to fit the rectangle size
-image6 = pygame.image.load("ai_dungeon/src/game6art.png")  # Path to your image
+image6 = pygame.image.load("arcade_hub/src/game6art.png")  # Path to your image
 image6 = pygame.transform.scale(image6, (150, 100))  # Resize image to fit the rectangle size
 
 image = [image1, image2, image3, image4, image5, image6]
