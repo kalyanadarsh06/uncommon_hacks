@@ -178,6 +178,7 @@ def main():
     enemy_speed_increment = 0.05  # Decrease the rate of enemy speed increment
     asteroid_spawn_rate_increment = 50  # Increment to make asteroids spawn less frequently over time
     game_start_time = pygame.time.get_ticks()  # Track the start time of the game
+    time_of_last_keydown = -1000  # Timer for keydown events
 
     while True:
         screen.fill(BLACK)
@@ -187,7 +188,8 @@ def main():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-            if event.type == pygame.KEYDOWN:
+            time_since_last_keydown = pygame.time.get_ticks() - time_of_last_keydown  # Calculate time since last keydown
+            if event.type == pygame.KEYDOWN and (time_since_last_keydown > 200):
                 if event.key == pygame.K_UP:
                     spaceship.move("UP")
                 elif event.key == pygame.K_DOWN:
@@ -198,6 +200,7 @@ def main():
                     spaceship.move("RIGHT")
                 elif event.key == pygame.K_SPACE:
                     spaceship.shoot()
+                time_of_last_keydown = 0  # Reset the timer after a key press
 
         spaceship.update_cooldown()  # Update the cooldown timer
 
@@ -275,6 +278,17 @@ def main():
                             asteroid.flash_timer = 0.2  # Start flashing for 0.2 seconds
                             asteroids.remove(asteroid)  # Remove asteroid after flashing
                             break
+                if (
+                    spaceship.x < asteroid.x + asteroid.size
+                    and spaceship.x + spaceship.width > asteroid.x
+                    and spaceship.y < spaceship.y + asteroid.size
+                    and spaceship.y + spaceship.height > asteroid.y
+                    ):
+                    asteroid.flash_timer = 0.2  # Start flashing for 0.2 seconds
+                    asteroids.remove(asteroid)  # Remove asteroid after flashing
+                    health -= 1  # Reduce health by 1
+                    if health <= 0:
+                        game_over_screen(score)  # Show game over screen
 
         # Update coins
         for coin in coins[:]:
