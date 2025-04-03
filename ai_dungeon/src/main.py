@@ -1,4 +1,5 @@
 import pyxel
+<<<<<<< HEAD
 import random
 import math
 import os
@@ -226,16 +227,50 @@ class Game:
         # Initialize managers
         self.level_manager = LevelManager()
         self.ui_manager = UIManager()
+=======
+from maze_generator import MazeGenerator
+from game_state import Game, GameState, Player
+
+class MazeGame:
+    def __init__(self):
+        # Initialize game window
+        self.CELL_SIZE = 60  # Increased cell size for 600x600 window
+        self.GRID_SIZE = 10
+        window_size = self.CELL_SIZE * self.GRID_SIZE
+        pyxel.init(window_size, window_size, title="AI Maze Escape")
         
-        # Player attributes
-        self.reset_player()
+        # Colors
+        self.COLORS = {
+            'wall': 5,      # Dark blue
+            'player': 11,   # Yellow
+            'coin': 10,     # Yellow
+            'exit': 3,      # Green
+            'path': 1,      # Dark blue
+            'bg': 0,       # Black
+            'text': 7,      # White
+            'placed_block': 13,  # Purple for player-placed blocks
+            'cursor': 14,   # Pink for cursor highlight
+            'highlight': 6  # Light blue for highlighting
+        }
+>>>>>>> arun_branch
         
+        # Initialize game components
+        self.maze_generator = MazeGenerator()
+        self.game = Game()
+        
+<<<<<<< HEAD
         # Initialize first level
         self.setup_combat()
+=======
+        # Start first level
+        self.init_level()
+        self.game.state = GameState.PLAYING
+>>>>>>> arun_branch
         
-        # Start the game
+        # Start the game loop
         pyxel.run(self.update, self.draw)
     
+<<<<<<< HEAD
     def reset_player(self):
         """Reset player to starting position with initial attributes."""
         self.player_x = 300  # Center of 600x600
@@ -325,11 +360,30 @@ class Game:
             return projectiles
         return None
 
+=======
+    def init_level(self):
+        """Initialize a new level."""
+        maze_data = self.maze_generator.generate_maze(self.game.current_level)
+        self.game.init_level(maze_data)
+    
+>>>>>>> arun_branch
     def update(self):
-        # Exit if Q is pressed
-        if pyxel.btnp(pyxel.KEY_Q):
-            pyxel.quit()
+        """Update game state."""
+        if self.game.state == GameState.PLAYING:
+            # Handle input
+            if not self.game.player.moving:
+                if pyxel.btnp(pyxel.KEY_UP):
+                    self.game.start_movement(0, -1)
+                elif pyxel.btnp(pyxel.KEY_DOWN):
+                    self.game.start_movement(0, 1)
+                elif pyxel.btnp(pyxel.KEY_LEFT):
+                    self.game.start_movement(-1, 0)
+                elif pyxel.btnp(pyxel.KEY_RIGHT):
+                    self.game.start_movement(1, 0)
+                elif pyxel.btnp(pyxel.KEY_R):  # Reset game with blockcide message
+                    self.game.commit_blockcide()
             
+<<<<<<< HEAD
         # Update UI
         self.ui_manager.update()
         
@@ -445,35 +499,27 @@ class Game:
         if pyxel.btnp(pyxel.KEY_SPACE) and not self.attacking and self.attack_cooldown == 0:
             self.attacking = True
             self.attack_frame = weapon_data["duration"]
+=======
+            # Update cursor position with WASD
+            if pyxel.btnp(pyxel.KEY_W):
+                self.game.cursor.move(0, -1, self.GRID_SIZE)
+            elif pyxel.btnp(pyxel.KEY_S):
+                self.game.cursor.move(0, 1, self.GRID_SIZE)
+            elif pyxel.btnp(pyxel.KEY_A):
+                self.game.cursor.move(-1, 0, self.GRID_SIZE)
+            elif pyxel.btnp(pyxel.KEY_D):
+                self.game.cursor.move(1, 0, self.GRID_SIZE)
+>>>>>>> arun_branch
             
-            # Create projectiles for ranged weapons
-            if self.current_weapon in [WeaponType.BOW, WeaponType.STAFF]:
-                proj = self.create_projectile()
-                if isinstance(proj, list):
-                    self.projectiles.extend(proj)
-                elif proj:
-                    self.projectiles.append(proj)
-        
-        # Update attack
-        if self.attacking:
-            self.attack_frame -= 1
-            if self.attack_frame <= 0:
-                self.attacking = False
-                self.attack_cooldown = weapon_data["cooldown"]
-        
-        if self.attack_cooldown > 0:
-            self.attack_cooldown -= 1
-        
-        # Update projectiles
-        self.projectiles = [p for p in self.projectiles if p.active]
-        for projectile in self.projectiles:
-            projectile.update()
-        
-        # Update enemies and check for dead enemies
-        enemies_to_remove = []
-        for enemy in self.enemies:
-            enemy.update(self.player_x, self.player_y)
+            # Place block with F key at cursor position
+            if pyxel.btnp(pyxel.KEY_F):
+                self.game.try_place_block()
+                
+            # Destroy block with E key at cursor position
+            if pyxel.btnp(pyxel.KEY_E):
+                self.game.try_destroy_block()
             
+<<<<<<< HEAD
             # Check for collision with player if not invincible
             if not hasattr(self, 'invincible_timer') or self.invincible_timer <= 0:
                 if self.check_collision(self.player_x, self.player_y, 
@@ -500,31 +546,36 @@ class Game:
                     # Reduce player health and add invincibility frames
                     self.player_health = max(0, self.player_health - 5)  # More damage but less frequent
                     self.invincible_timer = 45  # 0.75 seconds of invincibility
+=======
+            # Update player movement
+            self.game.update_player_movement()
+>>>>>>> arun_branch
             
-            # Check for sword attack hit
-            if self.current_weapon == WeaponType.SWORD:
-                if self.attacking and self.attack_frame == weapon_data["duration"] - 1:
-                    if self.check_attack_hit(enemy):
-                        enemy.take_damage(weapon_data["damage"])
+            # Check win/lose conditions
+            self.game.check_game_over()
+            self.game.check_level_complete()
             
-            # Check for projectile hits
-            for projectile in self.projectiles:
-                if (abs(projectile.x - enemy.x) < enemy.size and
-                    abs(projectile.y - enemy.y) < enemy.size):
-                    enemy.take_damage(projectile.damage)
-                    projectile.active = False
-            
-            # Check if enemy is dead
-            if enemy.health <= 0:
-                enemies_to_remove.append(enemy)
-        
-        # Remove dead enemies
-        for enemy in enemies_to_remove:
-            self.enemies.remove(enemy)
+        elif self.game.state == GameState.LEVEL_COMPLETE:
+            if pyxel.btnp(pyxel.KEY_RETURN):
+                self.game.current_level += 1  # Increase difficulty
+                self.init_level()
+                self.game.state = GameState.PLAYING
+                
+        elif self.game.state == GameState.GAME_OVER:
+            if pyxel.btnp(pyxel.KEY_R):
+                self.game.reset_game()
+                self.init_level()
+                
+        elif self.game.state == GameState.BLOCKCIDE:
+            if pyxel.btnp(pyxel.KEY_R):
+                self.game.reset_game()
+                self.init_level()
     
     def draw(self):
-        pyxel.cls(0)
+        """Draw the game."""
+        pyxel.cls(self.COLORS['bg'])
         
+<<<<<<< HEAD
         # Draw based on game state
         if self.level_manager.game_state == GameState.COMBAT:
             self.draw_combat()
@@ -569,16 +620,48 @@ class Game:
             # Draw exit text above ladder
             exit_text = "EXIT!"
             self.draw_large_text(ladder_x + 5, ladder_y - 30, exit_text, 7, scale=3)
+=======
+        # Draw grid and visited cells
+        for y in range(self.GRID_SIZE):
+            for x in range(self.GRID_SIZE):
+                if self.game.grid[y][x]:
+                    self.draw_cell(x, y, self.COLORS['path'])
         
-        # Draw enemies
-        for enemy in self.enemies:
-            enemy.draw()
+        # Draw walls
+        for wall in self.game.walls:
+            self.draw_cell(wall[0], wall[1], self.COLORS['wall'])
         
-        # Draw projectiles
-        for proj in self.projectiles:
-            if proj.active:
-                proj.draw()
+        # Draw player-placed blocks
+        for block in self.game.player_placed_blocks:
+            self.draw_cell(block[0], block[1], self.COLORS['placed_block'])
         
+        # Draw coins
+        for coin in self.game.coin_positions:
+            self.draw_coin(coin[0], coin[1])
+        
+        # Draw goal (top-right corner)
+        self.draw_cell(self.GRID_SIZE - 1, 0, self.COLORS['exit'])
+        
+        # Draw player
+        self.draw_player(self.game.player.x, self.game.player.y)
+>>>>>>> arun_branch
+        
+        # Draw cursor with highlight effect
+        cursor_x = self.game.cursor.x
+        cursor_y = self.game.cursor.y
+        pos = [cursor_x, cursor_y]
+        
+        # Draw lighter version of whatever is under the cursor
+        if pos in self.game.walls or pos in self.game.player_placed_blocks:
+            color = self.COLORS['highlight']  # Lighter color for destroyable objects
+        elif pos == [self.GRID_SIZE - 1, 0]:  # Top-right corner
+            color = self.COLORS['highlight']  # Lighter green for goal
+        else:
+            color = self.COLORS['cursor']  # Default cursor color
+            
+        self.draw_cell(cursor_x, cursor_y, color)
+        
+<<<<<<< HEAD
         # Draw player with damage flash (red)
         if hasattr(self, 'invincible_timer') and self.invincible_timer > 0:
             if self.invincible_timer % 4 < 2:  # Flash red
@@ -633,6 +716,83 @@ class Game:
         weapon_names = {WeaponType.SWORD: "SWORD", WeaponType.BOW: "BOW", WeaponType.STAFF: "STAFF"}
         weapon_text = f"WEAPON: {weapon_names[self.current_weapon]}"
         pyxel.text(20, 65, weapon_text, 7)
+=======
+        # Draw UI
+        self.draw_ui()
+        
+        # Draw coins and costs
+        pyxel.text(4, 4, f"Coins: {self.game.coins}", self.COLORS['text'])
+        next_place_cost = self.game.get_next_block_cost()
+        next_destroy_cost = self.game.get_next_destroy_cost()
+        pyxel.text(4, 12, f"Place Cost: {next_place_cost}", self.COLORS['text'])
+        pyxel.text(4, 20, f"Destroy Cost: {next_destroy_cost}", self.COLORS['text'])
+        pyxel.text(4, 28, f"Level: {self.game.current_level}", self.COLORS['text'])
+        pyxel.text(4, 36, f"Levels Beaten: {self.game.levels_beaten}", self.COLORS['text'])
+        
+        # Draw instructions
+        pyxel.text(4, pyxel.height - 40, "Arrow keys to move", self.COLORS['text'])
+        pyxel.text(4, pyxel.height - 32, "WASD to move cursor", self.COLORS['text'])
+        pyxel.text(4, pyxel.height - 24, "F to place block", self.COLORS['text'])
+        pyxel.text(4, pyxel.height - 16, "E to remove wall/block", self.COLORS['text'])
+        pyxel.text(4, pyxel.height - 8, "R to forfeit game", self.COLORS['text'])
+        
+        # Draw game over screen
+        if self.game.state == GameState.GAME_OVER:
+            self.draw_centered_text("Game Over!", pyxel.height // 2)
+            self.draw_centered_text("Press R to restart", pyxel.height // 2 + 10)
+            self.draw_centered_text(f"Levels Beaten: {self.game.levels_beaten}", pyxel.height // 2 + 20)
+        
+        # Draw level complete screen
+        elif self.game.state == GameState.LEVEL_COMPLETE:
+            self.draw_centered_text("Level Complete!", pyxel.height // 2)
+            self.draw_centered_text("Press ENTER for next level", pyxel.height // 2 + 10)
+        
+        # Draw blockcide screen
+        elif self.game.state == GameState.BLOCKCIDE:
+            self.draw_centered_text("You commit blockcide and die.", pyxel.height // 2)
+            self.draw_centered_text(f"Levels Beaten: {self.game.levels_beaten}", pyxel.height // 2 + 10)
+            self.draw_centered_text("Press R to restart", pyxel.height // 2 + 20)
+    
+    def draw_cell(self, x, y, color):
+        """Draw a single cell."""
+        pyxel.rect(
+            x * self.CELL_SIZE,
+            y * self.CELL_SIZE,
+            self.CELL_SIZE - 1,
+            self.CELL_SIZE - 1,
+            color
+        )
+    
+    def draw_coin(self, x, y):
+        """Draw a coin."""
+        center_x = x * self.CELL_SIZE + self.CELL_SIZE // 2
+        center_y = y * self.CELL_SIZE + self.CELL_SIZE // 2
+        radius = self.CELL_SIZE // 4
+        pyxel.circ(center_x, center_y, radius, self.COLORS['coin'])
+    
+    def draw_player(self, x, y):
+        """Draw the player."""
+        center_x = x * self.CELL_SIZE + self.CELL_SIZE // 2
+        center_y = y * self.CELL_SIZE + self.CELL_SIZE // 2
+        radius = self.CELL_SIZE // 3
+        pyxel.circ(center_x, center_y, radius, self.COLORS['player'])
+    
+    def draw_ui(self):
+        """Draw game UI."""
+        # Score and level
+        pyxel.text(4, 20, f"Level: {self.game.current_level}", 7)
+    
+    def draw_centered_text(self, text, y):
+        """Draw text centered on screen."""
+        x = (pyxel.width - len(text) * 4) // 2
+        pyxel.text(x, y, text, self.COLORS['text'])
+        
+    def reset_game(self):
+        """Reset the game state without reinitializing Pyxel."""
+        self.game = Game()
+        self.init_level()
+        self.game.state = GameState.PLAYING
+>>>>>>> arun_branch
 
 if __name__ == '__main__':
-    Game()
+    MazeGame()
